@@ -1,44 +1,53 @@
-import gym
-import numpy as np
+import random
 import matplotlib.pyplot as plt
 
-# Configuración del entorno
-env = gym.make('Blackjack-v0')
+# Dimensiones del tablero
+board_size = 5
 
-# Definición de variables
-num_episodes = 100000
-returns_sum = np.zeros((32, 11, 2))
-returns_count = np.zeros((32, 11, 2))
-V = np.zeros((32, 11))
+# Posición inicial y objetivo aleatorias
+initial_pos = (random.randint(0, board_size-1), random.randint(0, board_size-1))
+goal_pos = (random.randint(0, board_size-1), random.randint(0, board_size-1))
+print("la pocicion inicial", initial_pos)
+print("la pocicion final", goal_pos)
+# Función para mover el agente en el tablero
+def move(pos, action):
+    if action == "up":
+        new_pos = (pos[0], max(pos[1]-1, 0))
+    elif action == "down":
+        new_pos = (pos[0], min(pos[1]+1, board_size-1))
+    elif action == "left":
+        new_pos = (max(pos[0]-1, 0), pos[1])
+    elif action == "right":
+        new_pos = (min(pos[0]+1, board_size-1), pos[1])
+    return new_pos
 
-# Algoritmo de valoración de Monte Carlo
-for i in range(num_episodes):
-    # Generar un episodio
-    episode = []
-    state = env.reset()
+# Función para calcular el puntaje del agente en un episodio
+def run_episode():
+    pos = initial_pos
     done = False
+    score = 0
     while not done:
-        action = env.action_space.sample()
-        next_state, reward, done, info = env.step(action)
-        episode.append((state, action, reward))
-        state = next_state
-        
-    # Actualización de la función de valor
-    states, _, rewards = zip(*episode)
-    for j, state in enumerate(states):
-        returns_sum[state][action][0 if rewards[j] == 0 else 1] += sum(rewards[j:])
-        returns_count[state][action][0 if rewards[j] == 0 else 1] += 1
-        V[state][action] = returns_sum[state][action][1] / returns_count[state][action][1]
+        action = random.choice(["up", "down", "left", "right"])
+        pos = move(pos, action)
+        if pos == goal_pos:
+            done = True
+            score += 10
+        else:
+            score -= 1
+    return score
 
-# Graficar la función de valor final
-x_range = np.arange(11)
-y_range = np.arange(32)
-X, Y = np.meshgrid(x_range, y_range)
-Z = V[Y, X]
-fig, ax = plt.subplots()
-heatmap = ax.pcolormesh(X, Y, Z, cmap='coolwarm')
-cbar = plt.colorbar(heatmap)
-plt.xlabel('Dealer showing')
-plt.ylabel('Player sum')
-plt.title('Value function')
+# Parámetros del algoritmo
+num_episodes = 1000
+
+# Algoritmo de aprendizaje por refuerzo pasivo
+scores = []
+for i in range(num_episodes):
+    score = run_episode()
+    scores.append(score)
+
+# Graficar los resultados
+plt.plot(scores)
+plt.xlabel("Episodio")
+plt.ylabel("Puntaje")
+plt.title("Aprendizaje por refuerzo pasivo para el problema del agente en el tablero")
 plt.show()
